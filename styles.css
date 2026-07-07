@@ -1,0 +1,276 @@
+:root {
+  --primary: #4F46E5;
+  --primary-dark: #3730A3;
+  --bg: #F8F9FC;
+  --card-bg: #FFFFFF;
+  --text: #1F2333;
+  --muted: #6B7280;
+  --border: #E5E7EB;
+  --correct: #059669;
+  --wrong: #DC2626;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  height: 100%;
+  overscroll-behavior-y: contain;
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+}
+
+.topbar h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn.ghost {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+}
+
+.btn.primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btn.primary:disabled {
+  background: var(--border);
+  color: var(--muted);
+}
+
+.btn.big {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  border-radius: 16px;
+  margin-top: 16px;
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+main {
+  flex: 1;
+  padding: 8px 16px 24px;
+}
+
+.hero {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 28px 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.hero-count {
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.hero-label {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.subject-list {
+  margin-top: 20px;
+}
+
+.subject-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.subject-name {
+  font-weight: 700;
+  flex: 1;
+}
+
+.subject-meta {
+  color: var(--muted);
+  font-size: 13px;
+  margin-right: 12px;
+}
+
+.progress {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.quiz .prompt {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.statement {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  font-size: 17px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.choice-row {
+  display: flex;
+  gap: 12px;
+}
+
+.choice-row .choice {
+  flex: 1;
+  padding: 20px;
+  font-size: 22px;
+}
+
+.choice-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.choice.wide {
+  text-align: left;
+  padding: 14px 16px;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.choice:disabled {
+  opacity: 0.6;
+}
+
+.feedback {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+}
+
+.feedback.correct {
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--correct);
+}
+
+.feedback.wrong {
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--wrong);
+}
+
+.feedback .reveal {
+  color: var(--text);
+  font-size: 14px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.rating-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.rating-row .rate {
+  flex: 1;
+  padding: 12px 4px;
+  font-size: 13px;
+}
+
+.stat-grid {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.stat-box {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stat-num {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 100px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.bar {
+  width: 100%;
+  background: var(--primary);
+  border-radius: 6px 6px 0 0;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
