@@ -85,6 +85,37 @@ html, body {
   font-size: 13px;
 }
 
+.level-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.level-tabs .tab {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--muted);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.level-tabs .tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.empty-notice {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 20px;
+}
+
 main {
   flex: 1;
   padding: 8px 16px 24px;

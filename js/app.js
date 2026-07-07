@@ -3,6 +3,9 @@
   const root = document.getElementById("app");
   let state = STORE.load();
   let session = null; // { queue: [cardId...], index, subject }
+  let currentLevel = "기본"; // "기본" | "심화"
+
+  const cardLevel = (c) => c.level || "기본";
 
   function shuffle(arr) {
     const a = [...arr];
@@ -19,6 +22,7 @@
 
   function dueCards(subject) {
     return PRECEDENTS.filter((c) => {
+      if (cardLevel(c) !== currentLevel) return false;
       if (subject && subject !== "전체" && c.subject !== subject) return false;
       const cs = STORE.getCardState(state, c.id);
       return SRS.isDue(cs);
@@ -26,7 +30,7 @@
   }
 
   function subjectList() {
-    return [...new Set(PRECEDENTS.map((c) => c.subject))];
+    return [...new Set(PRECEDENTS.filter((c) => cardLevel(c) === currentLevel).map((c) => c.subject))];
   }
 
   // ---------- 홈 ----------
@@ -34,7 +38,7 @@
     const subjects = subjectList();
     const rows = subjects
       .map((subj) => {
-        const total = PRECEDENTS.filter((c) => c.subject === subj).length;
+        const total = PRECEDENTS.filter((c) => c.subject === subj && cardLevel(c) === currentLevel).length;
         const due = dueCards(subj).length;
         return `
           <div class="subject-row">
@@ -46,21 +50,33 @@
       .join("");
 
     const totalDue = dueCards("전체").length;
+    const emptyNotice = subjects.length === 0 ? `<p class="empty-notice">이 난이도에는 아직 카드가 없습니다.</p>` : "";
 
     root.innerHTML = `
       <header class="topbar">
         <h1>판례암기</h1>
         <button class="btn ghost" data-nav="stats">통계</button>
       </header>
+      <div class="level-tabs">
+        <button class="tab ${currentLevel === "기본" ? "active" : ""}" data-level="기본">기본 학습</button>
+        <button class="tab ${currentLevel === "심화" ? "active" : ""}" data-level="심화">심화 학습</button>
+      </div>
       <main class="home">
         <div class="hero">
           <div class="hero-count">${totalDue}</div>
           <div class="hero-label">오늘 복습할 판례</div>
           <button class="btn primary big" data-start="전체" ${totalDue === 0 ? "disabled" : ""}>오늘 학습 시작</button>
         </div>
+        ${emptyNotice}
         <section class="subject-list">${rows}</section>
       </main>`;
 
+    root.querySelectorAll("[data-level]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        currentLevel = btn.dataset.level;
+        renderHome();
+      });
+    });
     root.querySelectorAll("[data-start]").forEach((btn) => {
       btn.addEventListener("click", () => startSession(btn.dataset.start));
     });
@@ -79,8 +95,9 @@
   }
 
   function pickDistractors(card, count) {
-    const pool = PRECEDENTS.filter((c) => c.id !== card.id && c.subject === card.subject);
-    const source = pool.length >= count ? pool : PRECEDENTS.filter((c) => c.id !== card.id);
+    const level = cardLevel(card);
+    const pool = PRECEDENTS.filter((c) => c.id !== card.id && c.subject === card.subject && cardLevel(c) === level);
+    const source = pool.length >= count ? pool : PRECEDENTS.filter((c) => c.id !== card.id && cardLevel(c) === level);
     return shuffle(source).slice(0, count);
   }
 
@@ -93,9 +110,15 @@
       let statement = card.holding;
       let answer = "O";
       if (!showTrue) {
-        const [other] = pickDistractors(card, 1);
-        statement = other ? other.holding : card.holding;
-        answer = other ? "X" : "O";
+        if (card.contrast) {
+          // 심화: 완전 무관한 판례가 아니라 헷갈리기 쉬운 유사 법리/예외를 오답으로 사용
+          statement = card.contrast;
+          answer = "X";
+        } else {
+          const [other] = pickDistractors(card, 1);
+          statement = other ? other.holding : card.holding;
+          answer = other ? "X" : "O";
+        }
       }
       return {
         type,
@@ -121,8 +144,14 @@
     }
 
     // case (사례형)
-    const distractors = pickDistractors(card, 3).map((c) => c.holding);
-    const choices = shuffle([card.holding, ...distractors]);
+    let choices;
+    if (card.contrast) {
+      const fillers = pickDistractors(card, 2).map((c) => c.holding);
+      choices = shuffle([card.holding, card.contrast, ...fillers]);
+    } else {
+      const distractors = pickDistractors(card, 3).map((c) => c.holding);
+      choices = shuffle([card.holding, ...distractors]);
+    }
     return {
       type,
       prompt: `[${card.subject}] 다음 쟁점에 대한 판례의 결론으로 옳은 것은?`,
