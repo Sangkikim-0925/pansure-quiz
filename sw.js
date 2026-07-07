@@ -1,4 +1,4 @@
-const CACHE_NAME = "pansure-quiz-v1";
+const CACHE_NAME = "pansure-quiz-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -26,18 +26,18 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// 네트워크 우선(network-first): 온라인이면 항상 최신 파일을 받아오고 캐시를 갱신하며,
+// 오프라인일 때만 캐시로 대체한다. (이전의 캐시 우선 전략은 배포 후에도 첫 방문 때
+// 저장된 파일을 계속 재사용해 업데이트가 반영되지 않는 문제가 있었음)
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => cached);
-    })
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
