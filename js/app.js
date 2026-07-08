@@ -55,7 +55,10 @@
     root.innerHTML = `
       <header class="topbar">
         <h1>판례암기</h1>
-        <button class="btn ghost" data-nav="stats">통계</button>
+        <div class="topbar-actions">
+          <button class="btn ghost" data-nav="wrongnotes">오답노트</button>
+          <button class="btn ghost" data-nav="stats">통계</button>
+        </div>
       </header>
       <div class="level-tabs">
         <button class="tab ${currentLevel === "기본" ? "active" : ""}" data-level="기본">기본 학습</button>
@@ -81,6 +84,7 @@
       btn.addEventListener("click", () => startSession(btn.dataset.start));
     });
     root.querySelector("[data-nav='stats']").addEventListener("click", renderStats);
+    root.querySelector("[data-nav='wrongnotes']").addEventListener("click", renderWrongNotes);
   }
 
   // ---------- 퀴즈 세션 ----------
@@ -135,6 +139,70 @@
 
     session = { queue, index: 0, subject: "약점 집중", correct: 0 };
     renderQuestion();
+  }
+
+  // 각 카드의 "가장 최근 채점 결과"가 오답인 카드만 모음 (다시 맞히면 자동으로 목록에서 빠짐)
+  function wrongCards() {
+    const latestByCard = {};
+    for (const h of state.history) {
+      if (!latestByCard[h.cardId] || h.ts > latestByCard[h.cardId].ts) {
+        latestByCard[h.cardId] = h;
+      }
+    }
+    return Object.entries(latestByCard)
+      .filter(([, h]) => h.correct === false)
+      .map(([cardId, h]) => ({ card: cardById(cardId), lastWrongAt: h.date }))
+      .filter((x) => x.card)
+      .sort((a, b) => (a.lastWrongAt < b.lastWrongAt ? 1 : -1));
+  }
+
+  function startWrongSession() {
+    const queue = shuffle(wrongCards().map((x) => x.card.id)).slice(0, 20);
+    if (queue.length === 0) return;
+    session = { queue, index: 0, subject: "오답 다시 풀기", correct: 0 };
+    renderQuestion();
+  }
+
+  // ---------- 오답노트 ----------
+  function renderWrongNotes() {
+    const wrongs = wrongCards();
+    const rows = wrongs.length
+      ? wrongs
+          .map(
+            ({ card, lastWrongAt }) => `
+              <div class="flag-row">
+                <div class="flag-info">
+                  <strong>[${card.subject}] ${card.caseNumber}</strong> <span class="weak-pct">${lastWrongAt}에 오답</span><br>
+                  ${card.holding}
+                </div>
+                <button class="btn small ${STORE.isFlagged(state, card.id) ? "flagged" : ""}" data-flag="${card.id}">
+                  ${STORE.isFlagged(state, card.id) ? "신고됨" : "🚩 신고"}
+                </button>
+              </div>`
+          )
+          .join("")
+      : `<p class="empty-notice">최근 결과 기준으로 틀린 카드가 없습니다.</p>`;
+
+    root.innerHTML = `
+      <header class="topbar">
+        <button class="btn ghost" data-nav="home">← 홈</button>
+        <h1>오답노트</h1>
+      </header>
+      <main class="stats">
+        <button class="btn primary big" data-nav="wrong" ${wrongs.length === 0 ? "disabled" : ""}>오답 다시 풀기 (${wrongs.length})</button>
+        <h2>틀린 카드 목록</h2>
+        <div class="flag-list">${rows}</div>
+      </main>`;
+
+    root.querySelector("[data-nav='home']").addEventListener("click", renderHome);
+    const startBtn = root.querySelector("[data-nav='wrong']");
+    if (startBtn) startBtn.addEventListener("click", startWrongSession);
+    root.querySelectorAll("[data-flag]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        STORE.toggleFlag(state, btn.dataset.flag);
+        renderWrongNotes();
+      });
+    });
   }
 
   function pickDistractors(card, count) {

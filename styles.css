@@ -38,6 +38,11 @@ html, body {
   padding: 16px 16px 8px;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 4px;
+}
+
 .topbar h1 {
   font-size: 18px;
   margin: 0;
@@ -358,7 +363,7 @@ main {
   color: var(--muted);
 }
 
-.btn.flag.flagged {
+.btn.flagged {
   color: var(--wrong);
   border-color: var(--wrong);
 }
