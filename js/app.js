@@ -94,6 +94,49 @@
     renderQuestion();
   }
 
+  // 리뷰 기록을 주제별/문제유형별 정답률로 집계 (약점 파악용)
+  function reviewStats() {
+    const byTopic = {};
+    const byType = {};
+    for (const h of state.history) {
+      const card = cardById(h.cardId);
+      if (!card) continue;
+
+      const topicKey = `${card.subject}|${card.topic}`;
+      if (!byTopic[topicKey]) byTopic[topicKey] = { subject: card.subject, topic: card.topic, total: 0, correct: 0 };
+      byTopic[topicKey].total += 1;
+      if (h.correct) byTopic[topicKey].correct += 1;
+
+      const typeKey = h.qtype || "기타";
+      if (!byType[typeKey]) byType[typeKey] = { type: typeKey, total: 0, correct: 0 };
+      byType[typeKey].total += 1;
+      if (h.correct) byType[typeKey].correct += 1;
+    }
+    const topics = Object.values(byTopic)
+      .map((v) => ({ ...v, accuracy: v.correct / v.total }))
+      .sort((a, b) => a.accuracy - b.accuracy);
+    const qtypes = Object.values(byType)
+      .map((v) => ({ ...v, accuracy: v.correct / v.total }))
+      .sort((a, b) => a.accuracy - b.accuracy);
+    return { topics, qtypes };
+  }
+
+  // 정답률이 낮은 주제의 카드를 SRS 예정일과 무관하게 모아 집중 학습 세션 구성
+  function startWeakSession() {
+    const { topics } = reviewStats();
+    const MIN_SAMPLE = 3;
+    let targets = topics.filter((t) => t.total >= MIN_SAMPLE && t.accuracy < 0.8).slice(0, 3);
+    if (targets.length === 0) targets = topics.slice(0, 3);
+    if (targets.length === 0) return;
+
+    const pool = PRECEDENTS.filter((c) => targets.some((t) => t.subject === c.subject && t.topic === c.topic));
+    const queue = shuffle(pool).slice(0, 20).map((c) => c.id);
+    if (queue.length === 0) return;
+
+    session = { queue, index: 0, subject: "약점 집중", correct: 0 };
+    renderQuestion();
+  }
+
   function pickDistractors(card, count) {
     const level = cardLevel(card);
     const pool = PRECEDENTS.filter((c) => c.id !== card.id && c.subject === card.subject && cardLevel(c) === level);
@@ -212,6 +255,7 @@
     session.current.answered = true;
     const { card, q } = session.current;
     const isCorrect = picked === q.answer;
+    session.current.isCorrect = isCorrect;
     if (isCorrect) session.correct += 1;
 
     document.querySelectorAll("[data-answer]").forEach((b) => (b.disabled = true));
@@ -235,11 +279,11 @@
   }
 
   function onRate(grade) {
-    const { card } = session.current;
+    const { card, q, isCorrect } = session.current;
     const cs = STORE.getCardState(state, card.id);
     const next = SRS.review(cs, grade);
     STORE.setCardState(state, card.id, next);
-    STORE.recordReview(state, card.id, grade);
+    STORE.recordReview(state, card.id, grade, { correct: isCorrect, qtype: q.type });
 
     session.index += 1;
     if (session.index >= session.queue.length) {
@@ -291,6 +335,29 @@
       })
       .join("");
 
+    const { topics, qtypes } = reviewStats();
+    const typeLabel = { ox: "OX", blank: "빈칸", case: "사례형" };
+
+    const weakRow = (label, v) => {
+      const pct = Math.round(v.accuracy * 100);
+      return `
+        <div class="weak-row">
+          <div class="weak-label">${label}</div>
+          <div class="weak-bar-track"><div class="weak-bar-fill" style="width:${pct}%"></div></div>
+          <div class="weak-pct">${pct}% (${v.correct}/${v.total})</div>
+        </div>`;
+    };
+
+    const topicRows = topics.length
+      ? topics.map((t) => weakRow(`${t.subject} · ${t.topic}`, t)).join("")
+      : `<p class="empty-notice">아직 학습 기록이 없습니다.</p>`;
+
+    const typeRows = qtypes.length
+      ? qtypes.map((t) => weakRow(typeLabel[t.type] || t.type, t)).join("")
+      : "";
+
+    const canFocus = topics.length > 0;
+
     root.innerHTML = `
       <header class="topbar">
         <button class="btn ghost" data-nav="home">← 홈</button>
@@ -304,9 +371,15 @@
         </div>
         <h2>최근 7일 복습 활동</h2>
         <div class="bar-chart">${bars}</div>
+        <h2>주제별 정답률 (낮은 순)</h2>
+        <div class="weak-list">${topicRows}</div>
+        <h2>문제 유형별 정답률</h2>
+        <div class="weak-list">${typeRows}</div>
+        <button class="btn primary big" data-nav="weak" ${canFocus ? "" : "disabled"}>약점 집중 학습 시작</button>
       </main>`;
 
     root.querySelector("[data-nav='home']").addEventListener("click", renderHome);
+    root.querySelector("[data-nav='weak']").addEventListener("click", startWeakSession);
   }
 
   renderHome();

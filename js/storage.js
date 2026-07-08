@@ -27,8 +27,15 @@ const STORE = (() => {
     save(state);
   }
 
-  function recordReview(state, cardId, grade) {
-    state.history.push({ cardId, grade, date: SRS.todayISO(0), ts: Date.now() });
+  function recordReview(state, cardId, grade, extra = {}) {
+    state.history.push({
+      cardId,
+      grade,
+      correct: !!extra.correct,
+      qtype: extra.qtype || null,
+      date: SRS.todayISO(0),
+      ts: Date.now()
+    });
     save(state);
   }
 

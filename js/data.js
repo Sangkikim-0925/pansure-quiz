@@ -9,6 +9,8 @@
 // 필드 설명
 //   id:      카드 고유 id
 //   subject: 과목 (민법 / 형법 / 형사소송법 / 민사소송법 / 부동산등기법 / 상법 등)
+//   topic:   과목 내 세부 주제 (예: 민법 → 물권법/채권총론/불법행위 등). 통계 화면의
+//            "주제별 정답률"과 "약점 집중 학습" 모드가 이 값으로 카드를 묶습니다.
 //   caseNumber: 사건번호 (예: 대법원 2011다68941) — 확인 필요
 //   date:    선고일 (YYYY-MM-DD) — 확인 필요
 //   issue:   쟁점을 사례형 질문처럼 요약한 문장
@@ -24,6 +26,7 @@ const PRECEDENTS = [
   {
     id: "civ-001",
     subject: "민법",
+    topic: "물권법",
     caseNumber: "대법원 2002다1567 (확인필요)",
     date: "2002-08-23",
     issue: "계약명의신탁에서 명의수탁자가 매도인과 매매계약을 체결했고 매도인이 명의신탁 사실을 몰랐던 경우, 부동산의 소유권은 누구에게 귀속되는가?",
@@ -34,6 +37,7 @@ const PRECEDENTS = [
   {
     id: "civ-002",
     subject: "민법",
+    topic: "총칙",
     caseNumber: "대법원 94다23374 (확인필요)",
     date: "1994-11-18",
     issue: "부동산 이중매매에서 제2매수인이 매도인의 배임행위에 적극 가담한 경우, 제2매매계약의 효력은?",
@@ -44,6 +48,7 @@ const PRECEDENTS = [
   {
     id: "civ-003",
     subject: "민법",
+    topic: "물권법",
     caseNumber: "대법원 2005다22688 (확인필요)",
     date: "2005-08-19",
     issue: "부동산 경매개시결정 기입등기 이후에 비로소 점유를 취득하여 유치권을 취득한 자가, 그 부동산을 매수한 자에게 유치권을 주장할 수 있는가?",
@@ -54,6 +59,7 @@ const PRECEDENTS = [
   {
     id: "civ-004",
     subject: "민법",
+    topic: "채권총론",
     caseNumber: "대법원 88다카24622 (확인필요)",
     date: "1988-02-23",
     issue: "채권자취소권(사해행위취소) 행사로 인한 원상회복의 효력은 채무자에게도 미치는가?",
@@ -64,6 +70,7 @@ const PRECEDENTS = [
   {
     id: "civ-005",
     subject: "민법",
+    topic: "채권각론",
     caseNumber: "대법원 2003다6781 (확인필요)",
     date: "2003-11-14",
     issue: "매매계약이 무효이거나 취소된 경우 이미 지급된 대금과 이전된 목적물의 원상회복은 어떤 법리에 따르는가?",
@@ -74,6 +81,7 @@ const PRECEDENTS = [
   {
     id: "civ-006",
     subject: "민법",
+    topic: "불법행위",
     caseNumber: "대법원 2000다12373 (확인필요)",
     date: "2000-09-08",
     issue: "여러 명이 공동으로 타인에게 손해를 가한 경우 각 가해자의 배상책임의 범위와 성질은?",
@@ -84,6 +92,7 @@ const PRECEDENTS = [
   {
     id: "civ-007",
     subject: "민법",
+    topic: "불법행위",
     caseNumber: "대법원 99다19311 (확인필요)",
     date: "1999-08-24",
     issue: "사용자책임에서 '사무집행에 관하여'라는 요건은 어떤 기준으로 판단하는가?",
@@ -94,6 +103,7 @@ const PRECEDENTS = [
   {
     id: "civ-008",
     subject: "민법",
+    topic: "채권총론",
     caseNumber: "대법원 2001다8097 (확인필요)",
     date: "2001-07-13",
     issue: "채권자대위권을 행사하려면 원칙적으로 피보전채권의 이행기가 도래해야 하는데, 예외적으로 이행기 전에도 대위행사가 가능한 경우가 있는가?",
@@ -104,6 +114,7 @@ const PRECEDENTS = [
   {
     id: "civ-009",
     subject: "민법",
+    topic: "채권각론",
     caseNumber: "대법원 2000다22850 (확인필요)",
     date: "2000-06-09",
     issue: "계약이 해제된 경우 해제 전에 그 목적물에 관하여 이해관계를 맺은 제3자는 어떤 요건으로 보호되는가?",
@@ -114,6 +125,7 @@ const PRECEDENTS = [
   {
     id: "civ-010",
     subject: "민법",
+    topic: "물권법",
     caseNumber: "대법원 92다21206 (확인필요)",
     date: "1993-05-25",
     issue: "점유취득시효 완성 후 등기를 마치기 전에 원소유자가 부동산을 제3자에게 처분하여 등기를 넘겨준 경우, 시효완성자는 그 제3자에게 소유권을 주장할 수 있는가?",
@@ -124,6 +136,7 @@ const PRECEDENTS = [
   {
     id: "civ-011",
     subject: "민법",
+    topic: "단체법(비법인사단)",
     caseNumber: "대법원 2000다68924 (확인필요)",
     date: "2000-10-27",
     issue: "종중이 종중원 명의로 부동산을 명의신탁한 경우, 이는 부동산실명법상 허용되는 명의신탁인가?",
@@ -134,6 +147,7 @@ const PRECEDENTS = [
   {
     id: "civ-012",
     subject: "민법",
+    topic: "단체법(비법인사단)",
     caseNumber: "대법원 87다카1233 (확인필요)",
     date: "1987-11-10",
     issue: "종중 소유 부동산을 처분하려면 어떤 절차를 거쳐야 유효한가?",
@@ -144,6 +158,7 @@ const PRECEDENTS = [
   {
     id: "civ-013",
     subject: "민법",
+    topic: "채권각론",
     caseNumber: "대법원 96다37236 (확인필요)",
     date: "1996-10-11",
     issue: "주택임대차보호법상 대항력 있는 임차인이 우선변제권도 함께 인정받으려면 어떤 요건을 추가로 갖추어야 하는가?",
@@ -154,6 +169,7 @@ const PRECEDENTS = [
   {
     id: "civ-014",
     subject: "민법",
+    topic: "물권법",
     caseNumber: "대법원 2003다34042 (확인필요)",
     date: "2003-10-10",
     issue: "저당권의 효력은 저당부동산에 부합된 물건이나 종물에도 미치는가?",
@@ -164,6 +180,7 @@ const PRECEDENTS = [
   {
     id: "civ-015",
     subject: "민법",
+    topic: "물권법",
     caseNumber: "대법원 2007다54979 (확인필요)",
     date: "2007-11-29",
     issue: "저당목적물이 멸실·훼손되어 저당권설정자가 받을 보험금·손해배상금에 대해 저당권자가 권리를 행사하려면 어떻게 해야 하는가?",
@@ -174,6 +191,7 @@ const PRECEDENTS = [
   {
     id: "civ-016",
     subject: "민법",
+    topic: "채권총론",
     caseNumber: "대법원 91다1114 (확인필요)",
     date: "1991-10-11",
     issue: "연대보증인은 주채무자가 변제자력이 있고 집행이 용이함을 이유로 최고·검색의 항변을 할 수 있는가?",
@@ -184,6 +202,7 @@ const PRECEDENTS = [
   {
     id: "civ-017",
     subject: "민법",
+    topic: "불법행위",
     caseNumber: "대법원 99다50385 (확인필요)",
     date: "1999-10-22",
     issue: "불법행위로 인한 손해배상액을 정할 때 피해자에게도 과실이 있는 경우 이를 어떻게 반영하는가?",
@@ -194,6 +213,7 @@ const PRECEDENTS = [
   {
     id: "civ-018",
     subject: "민법",
+    topic: "채권총론",
     caseNumber: "대법원 2005다37951 (확인필요)",
     date: "2005-09-15",
     issue: "당사자 쌍방이 서로 같은 종류의 채권을 가지고 있어 상계하려면 어떤 상태에 있어야 하는가?",
@@ -206,6 +226,7 @@ const PRECEDENTS = [
   {
     id: "cri-001",
     subject: "형법",
+    topic: "총론(위법성·책임)",
     caseNumber: "대법원 2000도223 (확인필요)",
     date: "2001-05-15",
     issue: "현재의 부당한 침해에 대해 방어행위를 하였으나 그 정도가 지나친 경우 정당방위가 성립하는가?",
@@ -216,6 +237,7 @@ const PRECEDENTS = [
   {
     id: "cri-002",
     subject: "형법",
+    topic: "총론(위법성·책임)",
     caseNumber: "대법원 92도1148 (확인필요)",
     date: "1992-02-11",
     issue: "부작위에 의한 범죄가 성립하려면 행위자에게 어떤 지위가 인정되어야 하는가?",
@@ -226,6 +248,7 @@ const PRECEDENTS = [
   {
     id: "cri-003",
     subject: "형법",
+    topic: "총론(공범론)",
     caseNumber: "대법원 98도321 (확인필요)",
     date: "1998-03-27",
     issue: "직접 실행행위를 분담하지 않은 공모자도 공동정범으로 처벌될 수 있는가?",
@@ -236,6 +259,7 @@ const PRECEDENTS = [
   {
     id: "cri-004",
     subject: "형법",
+    topic: "각론(개인적 법익)",
     caseNumber: "대법원 2004도340 (확인필요)",
     date: "2004-04-09",
     issue: "특정 소수인에게만 사실을 말한 경우에도 명예훼손죄의 공연성이 인정될 수 있는가?",
@@ -246,6 +270,7 @@ const PRECEDENTS = [
   {
     id: "cri-005",
     subject: "형법",
+    topic: "각론(재산죄)",
     caseNumber: "대법원 2010도1017 (확인필요)",
     date: "2010-05-27",
     issue: "사기죄가 성립하려면 피기망자의 어떤 행위가 있어야 하는가?",
@@ -256,6 +281,7 @@ const PRECEDENTS = [
   {
     id: "cri-006",
     subject: "형법",
+    topic: "각론(재산죄)",
     caseNumber: "대법원 99도275 (확인필요)",
     date: "1999-06-11",
     issue: "포주가 받은 화대(불법원인급여물)를 임의로 소비한 경우 횡령죄가 성립하는가?",
@@ -266,6 +292,7 @@ const PRECEDENTS = [
   {
     id: "cri-007",
     subject: "형법",
+    topic: "각론(재산죄)",
     caseNumber: "대법원 2009도1149 (확인필요)",
     date: "2009-05-14",
     issue: "배임죄가 성립하려면 행위자가 어떤 지위에 있어야 하는가?",
@@ -276,6 +303,7 @@ const PRECEDENTS = [
   {
     id: "cri-008",
     subject: "형법",
+    topic: "총론(죄수론)",
     caseNumber: "형법 제40조 (조문)",
     date: "-",
     issue: "하나의 행위가 여러 죄에 해당하는 경우 어떻게 처벌하는가?",
@@ -286,6 +314,7 @@ const PRECEDENTS = [
   {
     id: "cri-009",
     subject: "형법",
+    topic: "총론(구성요건론)",
     caseNumber: "대법원 90도1596 (확인필요)",
     date: "1990-10-16",
     issue: "형법상 인과관계 유무는 어떤 기준으로 판단하는가?",
@@ -296,6 +325,7 @@ const PRECEDENTS = [
   {
     id: "cri-010",
     subject: "형법",
+    topic: "총론(위법성·책임)",
     caseNumber: "대법원 92도999 (확인필요)",
     date: "1992-07-28",
     issue: "음주로 인해 사물변별능력이나 의사결정능력이 미약한 상태에서 범행한 경우 형이 어떻게 되는가?",
@@ -306,6 +336,7 @@ const PRECEDENTS = [
   {
     id: "cri-011",
     subject: "형법",
+    topic: "총론(공범론)",
     caseNumber: "형법 제31조 (조문)",
     date: "-",
     issue: "타인으로 하여금 범죄를 결의하게 하여 실행하게 한 자는 어떻게 처벌되는가?",
@@ -316,6 +347,7 @@ const PRECEDENTS = [
   {
     id: "cri-012",
     subject: "형법",
+    topic: "총론(구성요건론)",
     caseNumber: "대법원 97도1720 (확인필요)",
     date: "1997-06-13",
     issue: "형벌법규를 해석할 때 피고인에게 불리한 방향으로 유추해석하는 것이 허용되는가?",
@@ -328,6 +360,7 @@ const PRECEDENTS = [
   {
     id: "crp-001",
     subject: "형사소송법",
+    topic: "증거법",
     caseNumber: "대법원 2007도3061 전원합의체 (확인필요)",
     date: "2007-11-15",
     issue: "수사기관이 적법한 절차에 따르지 않고 수집한 증거는 유죄의 증거로 사용할 수 있는가?",
@@ -338,6 +371,7 @@ const PRECEDENTS = [
   {
     id: "crp-002",
     subject: "형사소송법",
+    topic: "증거법",
     caseNumber: "형사소송법 제310조 (조문)",
     date: "-",
     issue: "피고인의 자백만으로 유죄를 인정할 수 있는가?",
@@ -348,6 +382,7 @@ const PRECEDENTS = [
   {
     id: "crp-003",
     subject: "형사소송법",
+    topic: "증거법",
     caseNumber: "형사소송법 제314조 (조문)",
     date: "-",
     issue: "전문증거는 원칙적으로 증거능력이 없는데, 예외적으로 증거능력이 인정되려면 어떤 요건이 필요한가?",
@@ -358,6 +393,7 @@ const PRECEDENTS = [
   {
     id: "crp-004",
     subject: "형사소송법",
+    topic: "공판·상소",
     caseNumber: "대법원 2001도6553 (확인필요)",
     date: "2001-12-27",
     issue: "공소사실과 다른 사실을 인정하려면 공소장변경이 반드시 필요한가?",
@@ -368,6 +404,7 @@ const PRECEDENTS = [
   {
     id: "crp-005",
     subject: "형사소송법",
+    topic: "공판·상소",
     caseNumber: "대법원 94도1477 (확인필요)",
     date: "1994-08-09",
     issue: "확정판결의 기판력(일사부재리효)은 어느 범위까지 미치는가?",
@@ -378,6 +415,7 @@ const PRECEDENTS = [
   {
     id: "crp-006",
     subject: "형사소송법",
+    topic: "수사",
     caseNumber: "헌법 제12조 / 형사소송법 제215조",
     date: "-",
     issue: "수사기관이 압수수색을 하려면 원칙적으로 어떤 절차를 거쳐야 하는가?",
@@ -388,6 +426,7 @@ const PRECEDENTS = [
   {
     id: "crp-007",
     subject: "형사소송법",
+    topic: "증거법",
     caseNumber: "형사소송법 제308조 (조문)",
     date: "-",
     issue: "증거능력과 증명력은 어떻게 구별되는가?",
@@ -398,6 +437,7 @@ const PRECEDENTS = [
   {
     id: "crp-008",
     subject: "형사소송법",
+    topic: "증거법",
     caseNumber: "대법원 2010도3359 (확인필요)",
     date: "2012-06-14",
     issue: "검사 작성 피의자신문조서가 증거능력을 인정받으려면 어떤 요건이 필요한가?",
@@ -408,6 +448,7 @@ const PRECEDENTS = [
   {
     id: "crp-009",
     subject: "형사소송법",
+    topic: "공판·상소",
     caseNumber: "형사소송법 제368조 (조문)",
     date: "-",
     issue: "피고인만이 항소한 사건에서 항소심은 원심보다 무거운 형을 선고할 수 있는가?",
@@ -418,6 +459,7 @@ const PRECEDENTS = [
   {
     id: "crp-010",
     subject: "형사소송법",
+    topic: "공판·상소",
     caseNumber: "형사소송법 제252조 (조문)",
     date: "-",
     issue: "공소시효는 언제부터 진행되는가?",
@@ -430,6 +472,7 @@ const PRECEDENTS = [
   {
     id: "civp-001",
     subject: "민사소송법",
+    topic: "판결의 효력",
     caseNumber: "대법원 94다31624 (확인필요)",
     date: "1995-03-24",
     issue: "확정판결의 기판력은 판결의 어느 부분에 미치는가?",
@@ -440,6 +483,7 @@ const PRECEDENTS = [
   {
     id: "civp-002",
     subject: "민사소송법",
+    topic: "심리의 원칙",
     caseNumber: "민사소송법 제203조 (조문)",
     date: "-",
     issue: "법원은 당사자가 신청하지 않은 사항에 대해서도 판결할 수 있는가?",
@@ -450,6 +494,7 @@ const PRECEDENTS = [
   {
     id: "civp-003",
     subject: "민사소송법",
+    topic: "심리의 원칙",
     caseNumber: "대법원 정립 법리 (조문·판례 종합, 확인필요)",
     date: "-",
     issue: "법원은 당사자가 주장하지 않은 사실을 판결의 기초로 삼을 수 있는가?",
@@ -460,6 +505,7 @@ const PRECEDENTS = [
   {
     id: "civp-004",
     subject: "민사소송법",
+    topic: "소송물·소의이익",
     caseNumber: "대법원 판례 법리 (구소송물이론, 확인필요)",
     date: "-",
     issue: "동일한 사실관계에서 여러 실체법상 청구권이 경합하는 경우 소송물은 몇 개로 보는가(구소송물이론 기준)?",
@@ -470,6 +516,7 @@ const PRECEDENTS = [
   {
     id: "civp-005",
     subject: "민사소송법",
+    topic: "소송주체·요건",
     caseNumber: "대법원 93다52488 (확인필요)",
     date: "1994-03-25",
     issue: "특정 소송에서 정당한 당사자로 소송을 수행할 수 있는 자격은 무엇에 의해 결정되는가?",
@@ -480,6 +527,7 @@ const PRECEDENTS = [
   {
     id: "civp-006",
     subject: "민사소송법",
+    topic: "증거·자백",
     caseNumber: "민사소송법 제288조 (조문)",
     date: "-",
     issue: "당사자가 변론에서 상대방의 주장사실을 인정한 경우(재판상 자백) 법원은 이에 구속되는가?",
@@ -490,6 +538,7 @@ const PRECEDENTS = [
   {
     id: "civp-007",
     subject: "민사소송법",
+    topic: "소송물·소의이익",
     caseNumber: "민사소송법 제259조 (조문)",
     date: "-",
     issue: "이미 계속 중인 사건에 대해 동일한 당사자가 다시 소를 제기할 수 있는가?",
@@ -500,6 +549,7 @@ const PRECEDENTS = [
   {
     id: "civp-008",
     subject: "민사소송법",
+    topic: "판결의 효력",
     caseNumber: "대법원 판례 법리 (상소불가분원칙, 확인필요)",
     date: "-",
     issue: "판결의 일부에 대해서만 상소한 경우 판결 전부의 확정이 차단되는가?",
@@ -510,6 +560,7 @@ const PRECEDENTS = [
   {
     id: "civp-009",
     subject: "민사소송법",
+    topic: "소송물·소의이익",
     caseNumber: "민사소송법 제251조 (조문)",
     date: "-",
     issue: "이행판결을 구하는 소에서 이행기가 도래하지 않은 장래이행청구는 어떤 요건 하에 허용되는가?",
@@ -520,6 +571,7 @@ const PRECEDENTS = [
   {
     id: "civp-010",
     subject: "민사소송법",
+    topic: "증거·자백",
     caseNumber: "민사소송법 제202조 (조문)",
     date: "-",
     issue: "법원은 증거의 증명력을 판단할 때 법정된 증거법칙에 구속되는가?",
@@ -532,6 +584,7 @@ const PRECEDENTS = [
   {
     id: "reg-001",
     subject: "부동산등기법",
+    topic: "등기의 효력",
     caseNumber: "대법원 79다1741 (확인필요)",
     date: "1979-08-14",
     issue: "부동산에 관하여 등기가 되어 있는 경우 그 등기명의인은 적법한 권리자로 추정되는가?",
@@ -542,6 +595,7 @@ const PRECEDENTS = [
   {
     id: "reg-002",
     subject: "부동산등기법",
+    topic: "등기절차",
     caseNumber: "대법원 79다2087 (확인필요)",
     date: "1980-02-12",
     issue: "최초매도인, 중간자, 최종매수인 사이에 순차 매매가 이루어졌으나 중간등기를 생략하고 최초매도인에서 최종매수인 앞으로 바로 등기가 마쳐진 경우 그 등기는 유효한가?",
@@ -552,6 +606,7 @@ const PRECEDENTS = [
   {
     id: "reg-003",
     subject: "부동산등기법",
+    topic: "등기절차",
     caseNumber: "대법원 판례 법리 (확인필요)",
     date: "-",
     issue: "매매로 인한 소유권이전등기청구권은 물권적 청구권인가 채권적 청구권인가?",
@@ -562,6 +617,7 @@ const PRECEDENTS = [
   {
     id: "reg-004",
     subject: "부동산등기법",
+    topic: "특수등기",
     caseNumber: "대법원 판례 법리 (무효등기의 유용, 확인필요)",
     date: "-",
     issue: "원인무효인 등기라도 후에 실체관계에 부합하게 되면 그 등기를 그대로 유용할 수 있는가?",
@@ -572,6 +628,7 @@ const PRECEDENTS = [
   {
     id: "reg-005",
     subject: "부동산등기법",
+    topic: "특수등기",
     caseNumber: "민법 제245조 제2항",
     date: "-",
     issue: "부동산을 등기하고 점유한 자가 등기부취득시효를 주장하려면 어떤 요건이 필요한가?",
@@ -582,6 +639,7 @@ const PRECEDENTS = [
   {
     id: "reg-006",
     subject: "부동산등기법",
+    topic: "특수등기",
     caseNumber: "부동산등기법 제91조 (조문)",
     date: "-",
     issue: "가등기에 기하여 본등기를 마친 경우 본등기의 순위는 언제를 기준으로 하는가?",
@@ -592,6 +650,7 @@ const PRECEDENTS = [
   {
     id: "reg-007",
     subject: "부동산등기법",
+    topic: "등기의 효력",
     caseNumber: "대법원 판례 법리 (확인필요)",
     date: "-",
     issue: "원인 없이 마쳐진 등기의 명의인을 상대로 진정한 소유자는 어떤 청구를 할 수 있는가?",
@@ -602,6 +661,7 @@ const PRECEDENTS = [
   {
     id: "reg-008",
     subject: "부동산등기법",
+    topic: "등기의 효력",
     caseNumber: "대법원 판례 법리 (등기의 공신력 부정, 확인필요)",
     date: "-",
     issue: "등기를 믿고 부동산을 매수한 자는 등기가 실체관계와 다르더라도 소유권을 취득하는가?",
@@ -612,6 +672,7 @@ const PRECEDENTS = [
   {
     id: "reg-009",
     subject: "부동산등기법",
+    topic: "등기의 효력",
     caseNumber: "대법원 판례 법리 (확인필요)",
     date: "-",
     issue: "등기원인이 실제와 다르게 기재되었더라도 그 등기가 유효할 수 있는가?",
@@ -622,6 +683,7 @@ const PRECEDENTS = [
   {
     id: "reg-010",
     subject: "부동산등기법",
+    topic: "등기절차",
     caseNumber: "부동산등기법 제23조 제4항",
     date: "-",
     issue: "등기절차 이행을 명하는 확정판결을 받은 경우 등기권리자는 등기의무자의 협력 없이 등기를 신청할 수 있는가?",
@@ -638,6 +700,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-001",
     subject: "민법",
+    topic: "물권법",
     level: "심화",
     caseNumber: "대법원 94다20389 (확인필요)",
     date: "1994-10-14",
@@ -650,6 +713,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-002",
     subject: "민법",
+    topic: "물권법",
     level: "심화",
     caseNumber: "대법원 2002다1567 응용 (확인필요)",
     date: "-",
@@ -662,6 +726,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-003",
     subject: "민법",
+    topic: "채권총론",
     level: "심화",
     caseNumber: "대법원 98다56690 (확인필요)",
     date: "1998-05-15",
@@ -674,6 +739,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-004",
     subject: "민법",
+    topic: "물권법",
     level: "심화",
     caseNumber: "민법 제245조 대조 (확인필요)",
     date: "-",
@@ -686,6 +752,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-005",
     subject: "민법",
+    topic: "불법행위",
     level: "심화",
     caseNumber: "대법원 2000다34426 (확인필요)",
     date: "2000-08-18",
@@ -698,6 +765,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-006",
     subject: "민법",
+    topic: "채권총론",
     level: "심화",
     caseNumber: "민법 제496조 대조",
     date: "-",
@@ -710,6 +778,7 @@ const PRECEDENTS = [
   {
     id: "civ-adv-007",
     subject: "민법",
+    topic: "단체법(비법인사단)",
     level: "심화",
     caseNumber: "대법원 판례 법리 응용 (확인필요)",
     date: "-",
@@ -724,6 +793,7 @@ const PRECEDENTS = [
   {
     id: "cri-adv-001",
     subject: "형법",
+    topic: "총론(위법성·책임)",
     level: "심화",
     caseNumber: "형법 제21조 제3항 대조",
     date: "-",
@@ -736,6 +806,7 @@ const PRECEDENTS = [
   {
     id: "cri-adv-002",
     subject: "형법",
+    topic: "총론(공범론)",
     level: "심화",
     caseNumber: "대법원 판례 법리 (공동정범·종범 구별, 확인필요)",
     date: "-",
@@ -748,6 +819,7 @@ const PRECEDENTS = [
   {
     id: "cri-adv-003",
     subject: "형법",
+    topic: "각론(재산죄)",
     level: "심화",
     caseNumber: "대법원 판례 법리 (횡령·배임 구별, 확인필요)",
     date: "-",
@@ -760,6 +832,7 @@ const PRECEDENTS = [
   {
     id: "cri-adv-004",
     subject: "형법",
+    topic: "총론(죄수론)",
     level: "심화",
     caseNumber: "형법 제37조·제38조 대조",
     date: "-",
@@ -772,6 +845,7 @@ const PRECEDENTS = [
   {
     id: "cri-adv-005",
     subject: "형법",
+    topic: "총론(구성요건론)",
     level: "심화",
     caseNumber: "대법원 판례 법리 (인과관계 응용, 확인필요)",
     date: "-",
@@ -784,6 +858,7 @@ const PRECEDENTS = [
   {
     id: "cri-adv-006",
     subject: "형법",
+    topic: "총론(위법성·책임)",
     level: "심화",
     caseNumber: "형법 제10조 제3항 대조",
     date: "-",
@@ -798,6 +873,7 @@ const PRECEDENTS = [
   {
     id: "crp-adv-001",
     subject: "형사소송법",
+    topic: "증거법",
     level: "심화",
     caseNumber: "대법원 2007도3061 전원합의체 응용 (확인필요)",
     date: "-",
@@ -810,6 +886,7 @@ const PRECEDENTS = [
   {
     id: "crp-adv-002",
     subject: "형사소송법",
+    topic: "증거법",
     level: "심화",
     caseNumber: "대법원 판례 법리 (공범자 자백, 확인필요)",
     date: "-",
@@ -822,6 +899,7 @@ const PRECEDENTS = [
   {
     id: "crp-adv-003",
     subject: "형사소송법",
+    topic: "증거법",
     level: "심화",
     caseNumber: "형사소송법 제312조 제4항 대조",
     date: "-",
@@ -834,6 +912,7 @@ const PRECEDENTS = [
   {
     id: "crp-adv-004",
     subject: "형사소송법",
+    topic: "공판·상소",
     level: "심화",
     caseNumber: "형사소송법 제326조 대조",
     date: "-",
@@ -846,6 +925,7 @@ const PRECEDENTS = [
   {
     id: "crp-adv-005",
     subject: "형사소송법",
+    topic: "수사",
     level: "심화",
     caseNumber: "형사소송법 제216조 대조",
     date: "-",
@@ -858,6 +938,7 @@ const PRECEDENTS = [
   {
     id: "crp-adv-006",
     subject: "형사소송법",
+    topic: "공판·상소",
     level: "심화",
     caseNumber: "형사소송법 제368조 대조",
     date: "-",
@@ -872,6 +953,7 @@ const PRECEDENTS = [
   {
     id: "civp-adv-001",
     subject: "민사소송법",
+    topic: "판결의 효력",
     level: "심화",
     caseNumber: "민사소송법 제216조 제2항 대조",
     date: "-",
@@ -884,6 +966,7 @@ const PRECEDENTS = [
   {
     id: "civp-adv-002",
     subject: "민사소송법",
+    topic: "심리의 원칙",
     level: "심화",
     caseNumber: "민사소송법 제104조·제213조 대조",
     date: "-",
@@ -896,6 +979,7 @@ const PRECEDENTS = [
   {
     id: "civp-adv-003",
     subject: "민사소송법",
+    topic: "심리의 원칙",
     level: "심화",
     caseNumber: "대법원 판례 법리 (직권조사사항, 확인필요)",
     date: "-",
@@ -908,6 +992,7 @@ const PRECEDENTS = [
   {
     id: "civp-adv-004",
     subject: "민사소송법",
+    topic: "소송물·소의이익",
     level: "심화",
     caseNumber: "대법원 판례 법리 (소송물이론 대조, 확인필요)",
     date: "-",
@@ -920,6 +1005,7 @@ const PRECEDENTS = [
   {
     id: "civp-adv-005",
     subject: "민사소송법",
+    topic: "증거·자백",
     level: "심화",
     caseNumber: "민사소송법 제288조 단서 대조",
     date: "-",
@@ -932,6 +1018,7 @@ const PRECEDENTS = [
   {
     id: "civp-adv-006",
     subject: "민사소송법",
+    topic: "소송물·소의이익",
     level: "심화",
     caseNumber: "민사소송법 제259조 대조",
     date: "-",
@@ -946,6 +1033,7 @@ const PRECEDENTS = [
   {
     id: "reg-adv-001",
     subject: "부동산등기법",
+    topic: "등기의 효력",
     level: "심화",
     caseNumber: "대법원 판례 법리 (등기 추정력 한계, 확인필요)",
     date: "-",
@@ -958,6 +1046,7 @@ const PRECEDENTS = [
   {
     id: "reg-adv-002",
     subject: "부동산등기법",
+    topic: "등기절차",
     level: "심화",
     caseNumber: "대법원 판례 법리 (토지거래허가구역, 확인필요)",
     date: "-",
@@ -970,6 +1059,7 @@ const PRECEDENTS = [
   {
     id: "reg-adv-003",
     subject: "부동산등기법",
+    topic: "등기절차",
     level: "심화",
     caseNumber: "대법원 판례 법리 (취득시효완성자 등기청구권, 확인필요)",
     date: "-",
@@ -982,6 +1072,7 @@ const PRECEDENTS = [
   {
     id: "reg-adv-004",
     subject: "부동산등기법",
+    topic: "특수등기",
     level: "심화",
     caseNumber: "대법원 판례 법리 (표시등기 유용 불가, 확인필요)",
     date: "-",
@@ -994,6 +1085,7 @@ const PRECEDENTS = [
   {
     id: "reg-adv-005",
     subject: "부동산등기법",
+    topic: "특수등기",
     level: "심화",
     caseNumber: "민법 제245조 제2항 응용",
     date: "-",
@@ -1006,6 +1098,7 @@ const PRECEDENTS = [
   {
     id: "reg-adv-006",
     subject: "부동산등기법",
+    topic: "특수등기",
     level: "심화",
     caseNumber: "가등기담보법 제3조·제4조 대조",
     date: "-",
