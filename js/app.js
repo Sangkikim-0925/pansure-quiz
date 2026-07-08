@@ -260,12 +260,16 @@
 
     document.querySelectorAll("[data-answer]").forEach((b) => (b.disabled = true));
 
+    const flagged = STORE.isFlagged(state, card.id);
     const feedback = document.getElementById("feedback");
     feedback.innerHTML = `
       <div class="feedback ${isCorrect ? "correct" : "wrong"}">
         <p>${isCorrect ? "정답입니다." : "오답입니다."}</p>
         <p class="reveal"><strong>${card.caseNumber}</strong><br>${q.reveal}</p>
       </div>
+      <button class="btn flag ${flagged ? "flagged" : ""}" data-flag="${card.id}">
+        ${flagged ? "🚩 신고됨 (취소하기)" : "🚩 이 카드 내용 오류 신고"}
+      </button>
       <div class="rating-row">
         <button class="btn rate" data-grade="again">다시</button>
         <button class="btn rate" data-grade="hard">어려움</button>
@@ -275,6 +279,14 @@
 
     feedback.querySelectorAll("[data-grade]").forEach((btn) => {
       btn.addEventListener("click", () => onRate(btn.dataset.grade));
+    });
+
+    feedback.querySelector("[data-flag]").addEventListener("click", (e) => {
+      STORE.toggleFlag(state, card.id);
+      const nowFlagged = STORE.isFlagged(state, card.id);
+      const btn = e.currentTarget;
+      btn.textContent = nowFlagged ? "🚩 신고됨 (취소하기)" : "🚩 이 카드 내용 오류 신고";
+      btn.classList.toggle("flagged", nowFlagged);
     });
   }
 
@@ -358,6 +370,20 @@
 
     const canFocus = topics.length > 0;
 
+    const flagRows = state.flags.length
+      ? state.flags
+          .map((f) => {
+            const c = cardById(f.cardId);
+            if (!c) return "";
+            return `
+              <div class="flag-row">
+                <div class="flag-info"><strong>[${c.subject}] ${c.caseNumber}</strong><br>${c.holding}</div>
+                <button class="btn small" data-unflag="${c.id}">해제</button>
+              </div>`;
+          })
+          .join("")
+      : `<p class="empty-notice">신고한 카드가 없습니다.</p>`;
+
     root.innerHTML = `
       <header class="topbar">
         <button class="btn ghost" data-nav="home">← 홈</button>
@@ -376,10 +402,41 @@
         <h2>문제 유형별 정답률</h2>
         <div class="weak-list">${typeRows}</div>
         <button class="btn primary big" data-nav="weak" ${canFocus ? "" : "disabled"}>약점 집중 학습 시작</button>
+        <h2>신고한 카드 (${state.flags.length})</h2>
+        <div class="flag-list">${flagRows}</div>
+        ${state.flags.length ? `<button class="btn ghost small" data-copy-flags>신고 목록 복사하기</button>` : ""}
       </main>`;
 
     root.querySelector("[data-nav='home']").addEventListener("click", renderHome);
     root.querySelector("[data-nav='weak']").addEventListener("click", startWeakSession);
+    root.querySelectorAll("[data-unflag]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        STORE.toggleFlag(state, btn.dataset.unflag);
+        renderStats();
+      });
+    });
+    const copyBtn = root.querySelector("[data-copy-flags]");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", () => {
+        const text = state.flags
+          .map((f) => {
+            const c = cardById(f.cardId);
+            return c ? `${c.id} | [${c.subject}] ${c.caseNumber}\n${c.holding}` : f.cardId;
+          })
+          .join("\n\n");
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            copyBtn.textContent = "복사됨!";
+            setTimeout(() => {
+              copyBtn.textContent = "신고 목록 복사하기";
+            }, 1500);
+          })
+          .catch(() => {
+            copyBtn.textContent = "복사 실패 (수동으로 캡처해주세요)";
+          });
+      });
+    }
   }
 
   renderHome();

@@ -5,12 +5,12 @@ const STORE = (() => {
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return { cards: {}, history: [] };
+      if (!raw) return { cards: {}, history: [], flags: [] };
       const parsed = JSON.parse(raw);
-      return { cards: parsed.cards || {}, history: parsed.history || [] };
+      return { cards: parsed.cards || {}, history: parsed.history || [], flags: parsed.flags || [] };
     } catch (e) {
       console.warn("저장된 데이터를 불러오지 못했습니다. 초기화합니다.", e);
-      return { cards: {}, history: [] };
+      return { cards: {}, history: [], flags: [] };
     }
   }
 
@@ -39,5 +39,19 @@ const STORE = (() => {
     save(state);
   }
 
-  return { load, save, getCardState, setCardState, recordReview };
+  function isFlagged(state, cardId) {
+    return state.flags.some((f) => f.cardId === cardId);
+  }
+
+  function toggleFlag(state, cardId) {
+    const idx = state.flags.findIndex((f) => f.cardId === cardId);
+    if (idx >= 0) {
+      state.flags.splice(idx, 1);
+    } else {
+      state.flags.push({ cardId, date: SRS.todayISO(0), ts: Date.now() });
+    }
+    save(state);
+  }
+
+  return { load, save, getCardState, setCardState, recordReview, isFlagged, toggleFlag };
 })();

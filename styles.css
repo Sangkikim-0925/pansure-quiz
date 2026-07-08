@@ -350,3 +350,38 @@ main {
   color: var(--muted);
   white-space: nowrap;
 }
+
+.btn.flag {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.btn.flag.flagged {
+  color: var(--wrong);
+  border-color: var(--wrong);
+}
+
+.flag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.flag-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.flag-info {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+}
