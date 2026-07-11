@@ -33,6 +33,11 @@
     return [...new Set(PRECEDENTS.filter((c) => cardLevel(c) === currentLevel).map((c) => c.subject))];
   }
 
+  // recent:true 카드 = law.go.kr 원문 대조로 확인한 최신(2022년 이후) 판례. 기본/심화 구분과 무관하게 취급.
+  function recentCards() {
+    return PRECEDENTS.filter((c) => c.recent === true).sort((a, b) => (a.date < b.date ? 1 : -1));
+  }
+
   // ---------- 홈 ----------
   function renderHome() {
     const subjects = subjectList();
@@ -56,6 +61,7 @@
       <header class="topbar">
         <h1>판례암기</h1>
         <div class="topbar-actions">
+          <button class="btn ghost" data-nav="recent">🆕 최신판례</button>
           <button class="btn ghost" data-nav="wrongnotes">오답노트</button>
           <button class="btn ghost" data-nav="stats">통계</button>
         </div>
@@ -85,6 +91,7 @@
     });
     root.querySelector("[data-nav='stats']").addEventListener("click", renderStats);
     root.querySelector("[data-nav='wrongnotes']").addEventListener("click", renderWrongNotes);
+    root.querySelector("[data-nav='recent']").addEventListener("click", renderRecentList);
   }
 
   // ---------- 퀴즈 세션 ----------
@@ -163,6 +170,47 @@
     renderQuestion();
   }
 
+  function startRecentSession() {
+    const queue = shuffle(recentCards().map((c) => c.id)).slice(0, 20);
+    if (queue.length === 0) return;
+    session = { queue, index: 0, subject: "최신판례 학습", correct: 0 };
+    renderQuestion();
+  }
+
+  // ---------- 최신판례 ----------
+  function renderRecentList() {
+    const recents = recentCards();
+    const rows = recents.length
+      ? recents
+          .map(
+            (c) => `
+              <div class="flag-row">
+                <div class="flag-info">
+                  <strong>[${c.subject}] ${c.caseNumber}</strong><br>
+                  ${c.holding}<br>
+                  ${c.source ? `<a href="${c.source}" target="_blank" rel="noopener" class="source-link">law.go.kr 원문 보기 →</a>` : ""}
+                </div>
+              </div>`
+          )
+          .join("")
+      : `<p class="empty-notice">아직 최신판례 카드가 없습니다.</p>`;
+
+    root.innerHTML = `
+      <header class="topbar">
+        <button class="btn ghost" data-nav="home">← 홈</button>
+        <h1>🆕 최신판례</h1>
+      </header>
+      <main class="stats">
+        <p class="prompt">국가법령정보센터(law.go.kr) 판례 원문과 대조 확인한 2022년 이후 선고 판례입니다. 각 카드의 링크를 눌러 원문을 직접 확인할 수 있습니다.</p>
+        <button class="btn primary big" data-nav="recentsession" ${recents.length === 0 ? "disabled" : ""}>최신판례만 학습 (${recents.length})</button>
+        <div class="flag-list">${rows}</div>
+      </main>`;
+
+    root.querySelector("[data-nav='home']").addEventListener("click", renderHome);
+    const startBtn = root.querySelector("[data-nav='recentsession']");
+    if (startBtn) startBtn.addEventListener("click", startRecentSession);
+  }
+
   // ---------- 오답노트 ----------
   function renderWrongNotes() {
     const wrongs = wrongCards();
@@ -215,6 +263,7 @@
   function buildQuestion(card) {
     const types = ["ox", "blank", "case"];
     const type = types[Math.floor(Math.random() * types.length)];
+    const subjLabel = card.recent ? `🆕 ${card.subject}` : card.subject;
 
     if (type === "ox") {
       const showTrue = Math.random() < 0.5;
@@ -233,7 +282,7 @@
       }
       return {
         type,
-        prompt: `[${card.subject}] ${card.caseNumber}\n다음 판시 취지 설명이 맞는지 O/X로 답하세요.`,
+        prompt: `[${subjLabel}] ${card.caseNumber}\n다음 판시 취지 설명이 맞는지 O/X로 답하세요.`,
         statement,
         answer,
         reveal: card.holding
@@ -246,7 +295,7 @@
       const choices = shuffle([card.keyword, ...distractors]);
       return {
         type,
-        prompt: `[${card.subject}] 빈칸에 들어갈 핵심 단어를 고르세요.`,
+        prompt: `[${subjLabel}] 빈칸에 들어갈 핵심 단어를 고르세요.`,
         statement: blanked,
         choices,
         answer: card.keyword,
@@ -265,7 +314,7 @@
     }
     return {
       type,
-      prompt: `[${card.subject}] 다음 쟁점에 대한 판례의 결론으로 옳은 것은?`,
+      prompt: `[${subjLabel}] 다음 쟁점에 대한 판례의 결론으로 옳은 것은?`,
       statement: card.issue,
       choices,
       answer: card.holding,

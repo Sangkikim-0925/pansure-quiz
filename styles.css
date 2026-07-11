@@ -40,7 +40,13 @@ html, body {
 
 .topbar-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
+}
+
+.topbar-actions .btn.ghost {
+  padding: 8px 6px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .topbar h1 {
@@ -389,4 +395,10 @@ main {
   flex: 1;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.source-link {
+  color: var(--primary);
+  font-size: 12px;
+  text-decoration: none;
 }
