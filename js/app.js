@@ -22,6 +22,7 @@
 
   function dueCards(subject) {
     return PRECEDENTS.filter((c) => {
+      if (c.practice) return false;
       if (cardLevel(c) !== currentLevel) return false;
       if (subject && subject !== "전체" && c.subject !== subject) return false;
       const cs = STORE.getCardState(state, c.id);
@@ -30,7 +31,7 @@
   }
 
   function subjectList() {
-    return [...new Set(PRECEDENTS.filter((c) => cardLevel(c) === currentLevel).map((c) => c.subject))];
+    return [...new Set(PRECEDENTS.filter((c) => !c.practice && cardLevel(c) === currentLevel).map((c) => c.subject))];
   }
 
   // recent:true 카드 = law.go.kr 원문 대조로 확인한 최신(2022년 이후) 판례. 기본/심화 구분과 무관하게 취급.
@@ -38,12 +39,17 @@
     return PRECEDENTS.filter((c) => c.recent === true).sort((a, b) => (a.date < b.date ? 1 : -1));
   }
 
+  // practice:true 카드 = 실제 판례가 아닌 AI 생성 종합연습문제. SRS/통계에서 완전히 분리.
+  function practiceCards() {
+    return PRECEDENTS.filter((c) => c.practice === true);
+  }
+
   // ---------- 홈 ----------
   function renderHome() {
     const subjects = subjectList();
     const rows = subjects
       .map((subj) => {
-        const total = PRECEDENTS.filter((c) => c.subject === subj && cardLevel(c) === currentLevel).length;
+        const total = PRECEDENTS.filter((c) => !c.practice && c.subject === subj && cardLevel(c) === currentLevel).length;
         const due = dueCards(subj).length;
         return `
           <div class="subject-row">
@@ -60,12 +66,13 @@
     root.innerHTML = `
       <header class="topbar">
         <h1>판례암기</h1>
-        <div class="topbar-actions">
-          <button class="btn ghost" data-nav="recent">🆕 최신판례</button>
-          <button class="btn ghost" data-nav="wrongnotes">오답노트</button>
-          <button class="btn ghost" data-nav="stats">통계</button>
-        </div>
       </header>
+      <div class="topbar-actions">
+        <button class="btn ghost" data-nav="recent">🆕 최신판례</button>
+        <button class="btn ghost" data-nav="practice">🧪 연습문제</button>
+        <button class="btn ghost" data-nav="wrongnotes">오답노트</button>
+        <button class="btn ghost" data-nav="stats">통계</button>
+      </div>
       <div class="level-tabs">
         <button class="tab ${currentLevel === "기본" ? "active" : ""}" data-level="기본">기본 학습</button>
         <button class="tab ${currentLevel === "심화" ? "active" : ""}" data-level="심화">심화 학습</button>
@@ -92,6 +99,7 @@
     root.querySelector("[data-nav='stats']").addEventListener("click", renderStats);
     root.querySelector("[data-nav='wrongnotes']").addEventListener("click", renderWrongNotes);
     root.querySelector("[data-nav='recent']").addEventListener("click", renderRecentList);
+    root.querySelector("[data-nav='practice']").addEventListener("click", renderPracticeList);
   }
 
   // ---------- 퀴즈 세션 ----------
@@ -111,7 +119,7 @@
     const byType = {};
     for (const h of state.history) {
       const card = cardById(h.cardId);
-      if (!card) continue;
+      if (!card || card.practice) continue;
 
       const topicKey = `${card.subject}|${card.topic}`;
       if (!byTopic[topicKey]) byTopic[topicKey] = { subject: card.subject, topic: card.topic, total: 0, correct: 0 };
@@ -140,7 +148,7 @@
     if (targets.length === 0) targets = topics.slice(0, 3);
     if (targets.length === 0) return;
 
-    const pool = PRECEDENTS.filter((c) => targets.some((t) => t.subject === c.subject && t.topic === c.topic));
+    const pool = PRECEDENTS.filter((c) => !c.practice && targets.some((t) => t.subject === c.subject && t.topic === c.topic));
     const queue = shuffle(pool).slice(0, 20).map((c) => c.id);
     if (queue.length === 0) return;
 
@@ -159,7 +167,7 @@
     return Object.entries(latestByCard)
       .filter(([, h]) => h.correct === false)
       .map(([cardId, h]) => ({ card: cardById(cardId), lastWrongAt: h.date }))
-      .filter((x) => x.card)
+      .filter((x) => x.card && !x.card.practice)
       .sort((a, b) => (a.lastWrongAt < b.lastWrongAt ? 1 : -1));
   }
 
@@ -211,6 +219,48 @@
     if (startBtn) startBtn.addEventListener("click", startRecentSession);
   }
 
+  function startPracticeSession() {
+    const queue = shuffle(practiceCards().map((c) => c.id));
+    if (queue.length === 0) return;
+    session = { queue, index: 0, subject: "연습문제(AI)", correct: 0 };
+    renderQuestion();
+  }
+
+  // ---------- 연습문제(AI) ----------
+  function renderPracticeList() {
+    const practices = practiceCards();
+    const rows = practices.length
+      ? practices
+          .map(
+            (c) => `
+              <div class="flag-row">
+                <div class="flag-info">
+                  <strong>[${c.subject}]</strong><br>
+                  ${c.issue}
+                </div>
+              </div>`
+          )
+          .join("")
+      : `<p class="empty-notice">아직 연습문제가 없습니다.</p>`;
+
+    root.innerHTML = `
+      <header class="topbar">
+        <button class="btn ghost" data-nav="home">← 홈</button>
+        <h1>🧪 연습문제(AI)</h1>
+      </header>
+      <main class="stats">
+        <p class="prompt">⚠️ 실제 판례가 아니라, 이미 검증된 법리 2개를 엮어 만든 AI 생성 종합사례 연습문제입니다.
+        "적중예상문제"가 아니며 실제 2026년 시험 출제를 예측한 것이 아닙니다. 기본/심화 학습·SRS·통계와는
+        완전히 분리되어 있습니다.</p>
+        <button class="btn primary big" data-nav="practicesession" ${practices.length === 0 ? "disabled" : ""}>연습문제 풀어보기 (${practices.length})</button>
+        <div class="flag-list">${rows}</div>
+      </main>`;
+
+    root.querySelector("[data-nav='home']").addEventListener("click", renderHome);
+    const startBtn = root.querySelector("[data-nav='practicesession']");
+    if (startBtn) startBtn.addEventListener("click", startPracticeSession);
+  }
+
   // ---------- 오답노트 ----------
   function renderWrongNotes() {
     const wrongs = wrongCards();
@@ -255,15 +305,16 @@
 
   function pickDistractors(card, count) {
     const level = cardLevel(card);
-    const pool = PRECEDENTS.filter((c) => c.id !== card.id && c.subject === card.subject && cardLevel(c) === level);
-    const source = pool.length >= count ? pool : PRECEDENTS.filter((c) => c.id !== card.id && cardLevel(c) === level);
+    const sameBucket = (c) => c.id !== card.id && !!c.practice === !!card.practice;
+    const pool = PRECEDENTS.filter((c) => sameBucket(c) && c.subject === card.subject && cardLevel(c) === level);
+    const source = pool.length >= count ? pool : PRECEDENTS.filter((c) => sameBucket(c) && cardLevel(c) === level);
     return shuffle(source).slice(0, count);
   }
 
   function buildQuestion(card) {
     const types = ["ox", "blank", "case"];
     const type = types[Math.floor(Math.random() * types.length)];
-    const subjLabel = card.recent ? `🆕 ${card.subject}` : card.subject;
+    const subjLabel = card.practice ? `🧪 연습(AI) · ${card.subject}` : card.recent ? `🆕 ${card.subject}` : card.subject;
 
     if (type === "ox") {
       const showTrue = Math.random() < 0.5;
@@ -440,8 +491,8 @@
 
   // ---------- 통계 ----------
   function renderStats() {
-    const totalCards = PRECEDENTS.length;
-    const learned = PRECEDENTS.filter((c) => STORE.getCardState(state, c.id).repetition > 0).length;
+    const totalCards = PRECEDENTS.filter((c) => !c.practice).length;
+    const learned = PRECEDENTS.filter((c) => !c.practice && STORE.getCardState(state, c.id).repetition > 0).length;
 
     const days = [...Array(7)].map((_, i) => SRS.todayISO(-6 + i));
     const counts = days.map(
@@ -501,6 +552,10 @@
           .join("")
       : `<p class="empty-notice">신고한 카드가 없습니다.</p>`;
 
+    const trendRows = Object.entries(EXAM_TRENDS)
+      .map(([subj, note]) => `<div class="flag-row"><div class="flag-info"><strong>${subj}</strong><br>${note}</div></div>`)
+      .join("");
+
     root.innerHTML = `
       <header class="topbar">
         <button class="btn ghost" data-nav="home">← 홈</button>
@@ -514,6 +569,9 @@
         </div>
         <h2>최근 7일 복습 활동</h2>
         <div class="bar-chart">${bars}</div>
+        <h2>과목별 출제경향 메모</h2>
+        <p class="prompt">웹 검색으로 확인한 정성적 정보이며 공식 통계가 아닙니다. 참고용으로만 활용하세요.</p>
+        <div class="flag-list">${trendRows}</div>
         <h2>주제별 정답률 (낮은 순)</h2>
         <div class="weak-list">${topicRows}</div>
         <h2>문제 유형별 정답률</h2>
