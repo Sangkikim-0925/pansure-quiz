@@ -6,6 +6,15 @@
   let currentLevel = "기본"; // "기본" | "심화"
 
   const cardLevel = (c) => c.level || "기본";
+  const SESSION_SIZE = 30; // 한 세션에 제시할 최대 문항 수 (DB 전체와 무관)
+
+  // contrast(단수)와 contrasts(복수)를 합쳐 "그럴듯한 함정 오답" 문장 배열로 반환
+  function cardContrasts(card) {
+    const list = [];
+    if (card.contrast) list.push(card.contrast);
+    if (Array.isArray(card.contrasts)) list.push(...card.contrasts);
+    return [...new Set(list)];
+  }
 
   function shuffle(arr) {
     const a = [...arr];
@@ -20,14 +29,32 @@
     return PRECEDENTS.find((c) => c.id === id);
   }
 
-  function dueCards(subject) {
-    return PRECEDENTS.filter((c) => {
-      if (c.practice) return false;
-      if (cardLevel(c) !== currentLevel) return false;
-      if (subject && subject !== "전체" && c.subject !== subject) return false;
-      const cs = STORE.getCardState(state, c.id);
-      return SRS.isDue(cs);
-    });
+  // 신고 토글 + 개발자 시트로 자동 전송 (REPORT_ENDPOINT 설정 시)
+  function toggleFlagAndReport(cardId) {
+    STORE.toggleFlag(state, cardId);
+    const card = cardById(cardId);
+    if (card && typeof REPORT !== "undefined") {
+      REPORT.submit(card, STORE.isFlagged(state, cardId) ? "신고" : "신고취소");
+    }
+  }
+
+  // 오늘 학습 대상을 둘로 분류:
+  //  - reviews: 이미 풀어본 적 있고 SRS상 오늘 복습이 도래한 카드
+  //  - fresh:   아직 한 번도 풀어보지 않은 카드 (localStorage에 기록 없음)
+  function todayPool(subject) {
+    const reviews = [];
+    const fresh = [];
+    for (const c of PRECEDENTS) {
+      if (c.practice) continue;
+      if (cardLevel(c) !== currentLevel) continue;
+      if (subject && subject !== "전체" && c.subject !== subject) continue;
+      if (!state.cards[c.id]) {
+        fresh.push(c);
+      } else if (SRS.isDue(STORE.getCardState(state, c.id))) {
+        reviews.push(c);
+      }
+    }
+    return { reviews, fresh };
   }
 
   function subjectList() {
@@ -46,21 +73,25 @@
 
   // ---------- 홈 ----------
   function renderHome() {
+    document.onkeydown = null;
     const subjects = subjectList();
+    const levelCards = PRECEDENTS.filter((c) => !c.practice && cardLevel(c) === currentLevel);
+    const levelLearned = levelCards.filter((c) => !!state.cards[c.id]).length;
     const rows = subjects
       .map((subj) => {
         const total = PRECEDENTS.filter((c) => !c.practice && c.subject === subj && cardLevel(c) === currentLevel).length;
-        const due = dueCards(subj).length;
+        const pool = todayPool(subj);
         return `
           <div class="subject-row">
             <div class="subject-name">${subj}</div>
-            <div class="subject-meta">전체 ${total} · 오늘 ${due}</div>
+            <div class="subject-meta">전체 ${total} · 복습 ${pool.reviews.length} · 새 문제 ${pool.fresh.length}</div>
             <button class="btn small" data-start="${subj}">학습</button>
           </div>`;
       })
       .join("");
 
-    const totalDue = dueCards("전체").length;
+    const { reviews, fresh } = todayPool("전체");
+    const todayTarget = Math.min(SESSION_SIZE, reviews.length + fresh.length);
     const emptyNotice = subjects.length === 0 ? `<p class="empty-notice">이 난이도에는 아직 카드가 없습니다.</p>` : "";
 
     root.innerHTML = `
@@ -79,9 +110,12 @@
       </div>
       <main class="home">
         <div class="hero">
-          <div class="hero-count">${totalDue}</div>
-          <div class="hero-label">오늘 복습할 판례</div>
-          <button class="btn primary big" data-start="전체" ${totalDue === 0 ? "disabled" : ""}>오늘 학습 시작</button>
+          <div class="hero-count">${todayTarget}</div>
+          <div class="hero-label">오늘의 학습 문항</div>
+          <div class="hero-sub">복습 예정 ${reviews.length} · 새 문제 ${fresh.length} 대기 — 한 세션 최대 ${SESSION_SIZE}문항</div>
+          <div class="hero-sub">${currentLevel} 전체 ${levelCards.length}장 중 ${levelLearned}장 학습 시작</div>
+          <div class="progress-track home-progress"><div class="progress-fill" style="width:${levelCards.length ? Math.round((levelLearned / levelCards.length) * 100) : 0}%"></div></div>
+          <button class="btn primary big" data-start="전체" ${todayTarget === 0 ? "disabled" : ""}>오늘 학습 시작 (${todayTarget}문항)</button>
         </div>
         ${emptyNotice}
         <section class="subject-list">${rows}</section>
@@ -103,8 +137,20 @@
   }
 
   // ---------- 퀴즈 세션 ----------
+  // 세션 구성 원칙: 최대 SESSION_SIZE문항.
+  //  - 복습 예정 카드에는 세션의 최대 1/3만 배정하고 나머지는 새 문제로 채워,
+  //    "이미 풀어본 문제보다 안 풀어본 문제가 우선" 나오게 한다.
+  //  - 새 문제가 부족해지면(막바지) 남는 자리를 복습 카드로 채운다.
   function startSession(subject) {
-    const queue = shuffle(dueCards(subject)).slice(0, 20).map((c) => c.id);
+    const { reviews, fresh } = todayPool(subject);
+    const reviewQuota = Math.min(reviews.length, Math.floor(SESSION_SIZE / 3));
+    const shuffledReviews = shuffle(reviews);
+    const picked = shuffledReviews.slice(0, reviewQuota);
+    picked.push(...shuffle(fresh).slice(0, SESSION_SIZE - picked.length));
+    if (picked.length < SESSION_SIZE) {
+      picked.push(...shuffledReviews.slice(reviewQuota, reviewQuota + (SESSION_SIZE - picked.length)));
+    }
+    const queue = shuffle(picked).map((c) => c.id);
     if (queue.length === 0) {
       renderHome();
       return;
@@ -149,7 +195,7 @@
     if (targets.length === 0) return;
 
     const pool = PRECEDENTS.filter((c) => !c.practice && targets.some((t) => t.subject === c.subject && t.topic === c.topic));
-    const queue = shuffle(pool).slice(0, 20).map((c) => c.id);
+    const queue = shuffle(pool).slice(0, SESSION_SIZE).map((c) => c.id);
     if (queue.length === 0) return;
 
     session = { queue, index: 0, subject: "약점 집중", correct: 0 };
@@ -172,14 +218,14 @@
   }
 
   function startWrongSession() {
-    const queue = shuffle(wrongCards().map((x) => x.card.id)).slice(0, 20);
+    const queue = shuffle(wrongCards().map((x) => x.card.id)).slice(0, SESSION_SIZE);
     if (queue.length === 0) return;
     session = { queue, index: 0, subject: "오답 다시 풀기", correct: 0 };
     renderQuestion();
   }
 
   function startRecentSession() {
-    const queue = shuffle(recentCards().map((c) => c.id)).slice(0, 20);
+    const queue = shuffle(recentCards().map((c) => c.id)).slice(0, SESSION_SIZE);
     if (queue.length === 0) return;
     session = { queue, index: 0, subject: "최신판례 학습", correct: 0 };
     renderQuestion();
@@ -297,22 +343,36 @@
     if (startBtn) startBtn.addEventListener("click", startWrongSession);
     root.querySelectorAll("[data-flag]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        STORE.toggleFlag(state, btn.dataset.flag);
+        toggleFlagAndReport(btn.dataset.flag);
         renderWrongNotes();
       });
     });
   }
 
+  // 같은 주제 → 같은 과목 → 같은 난이도 순으로 채워, 무관한 오답이 끼어들어
+  // 소거법으로 쉽게 풀리는 것을 막는다.
   function pickDistractors(card, count) {
     const level = cardLevel(card);
     const sameBucket = (c) => c.id !== card.id && !!c.practice === !!card.practice;
-    const pool = PRECEDENTS.filter((c) => sameBucket(c) && c.subject === card.subject && cardLevel(c) === level);
-    const source = pool.length >= count ? pool : PRECEDENTS.filter((c) => sameBucket(c) && cardLevel(c) === level);
-    return shuffle(source).slice(0, count);
+    const pools = [
+      PRECEDENTS.filter((c) => sameBucket(c) && c.subject === card.subject && c.topic === card.topic && cardLevel(c) === level),
+      PRECEDENTS.filter((c) => sameBucket(c) && c.subject === card.subject && cardLevel(c) === level),
+      PRECEDENTS.filter((c) => sameBucket(c) && cardLevel(c) === level)
+    ];
+    const picked = [];
+    for (const pool of pools) {
+      for (const c of shuffle(pool)) {
+        if (picked.length >= count) return picked;
+        if (!picked.some((p) => p.id === c.id)) picked.push(c);
+      }
+    }
+    return picked;
   }
 
   function buildQuestion(card) {
+    const contrasts = cardContrasts(card);
     const types = ["ox", "blank", "case"];
+    if (contrasts.length > 0) types.push("notcase"); // 함정 오답 보유 카드 전용: "틀린 것 고르기"
     const type = types[Math.floor(Math.random() * types.length)];
     const subjLabel = card.practice ? `🧪 연습(AI) · ${card.subject}` : card.recent ? `🆕 ${card.subject}` : card.subject;
 
@@ -321,9 +381,9 @@
       let statement = card.holding;
       let answer = "O";
       if (!showTrue) {
-        if (card.contrast) {
+        if (contrasts.length > 0) {
           // 심화: 완전 무관한 판례가 아니라 헷갈리기 쉬운 유사 법리/예외를 오답으로 사용
-          statement = card.contrast;
+          statement = contrasts[Math.floor(Math.random() * contrasts.length)];
           answer = "X";
         } else {
           const [other] = pickDistractors(card, 1);
@@ -342,7 +402,10 @@
 
     if (type === "blank") {
       const blanked = card.holding.replace(card.keyword, "＿＿＿＿");
-      const distractors = pickDistractors(card, 3).map((c) => c.keyword);
+      // 정답과 동일하거나 중복된 keyword가 선택지에 끼지 않도록 넉넉히 뽑아 걸러냄
+      const distractors = [
+        ...new Set(pickDistractors(card, 8).map((c) => c.keyword).filter((k) => k && k !== card.keyword))
+      ].slice(0, 3);
       const choices = shuffle([card.keyword, ...distractors]);
       return {
         type,
@@ -354,11 +417,28 @@
       };
     }
 
+    if (type === "notcase") {
+      // 실제 시험형: 4개의 서술 중 판례와 일치하지 않는 것 1개를 찾기.
+      // 오답(=정답 선택지)은 이 카드의 함정 문장, 나머지는 모두 참인 법리.
+      const trap = contrasts[Math.floor(Math.random() * contrasts.length)];
+      const truths = pickDistractors(card, 2).map((c) => c.holding);
+      const choices = shuffle([trap, card.holding, ...truths]);
+      return {
+        type,
+        prompt: `[${subjLabel}] 다음 설명 중 판례의 태도와 일치하지 않는 것은?`,
+        statement: "",
+        choices,
+        answer: trap,
+        reveal: `틀린 설명: ${trap}\n\n올바른 법리: ${card.holding}`
+      };
+    }
+
     // case (사례형)
     let choices;
-    if (card.contrast) {
-      const fillers = pickDistractors(card, 2).map((c) => c.holding);
-      choices = shuffle([card.holding, card.contrast, ...fillers]);
+    if (contrasts.length > 0) {
+      const traps = shuffle(contrasts).slice(0, 2);
+      const fillers = pickDistractors(card, 3 - traps.length).map((c) => c.holding);
+      choices = shuffle([card.holding, ...traps, ...fillers]);
     } else {
       const distractors = pickDistractors(card, 3).map((c) => c.holding);
       choices = shuffle([card.holding, ...distractors]);
@@ -379,8 +459,9 @@
     session.current = { card, q, answered: false };
 
     const progress = `${session.index + 1} / ${session.queue.length}`;
+    const progressPct = Math.round((session.index / session.queue.length) * 100);
 
-    let bodyHtml = `<p class="statement">${q.statement.replace(/\n/g, "<br>")}</p>`;
+    let bodyHtml = q.statement ? `<p class="statement">${q.statement.replace(/\n/g, "<br>")}</p>` : "";
 
     if (q.type === "ox") {
       bodyHtml += `
@@ -392,7 +473,10 @@
       bodyHtml += `
         <div class="choice-col">
           ${q.choices
-            .map((c) => `<button class="btn choice wide" data-answer="${encodeURIComponent(c)}">${c}</button>`)
+            .map(
+              (c, i) =>
+                `<button class="btn choice wide" data-answer="${encodeURIComponent(c)}"><span class="choice-num">${i + 1}</span><span class="choice-text">${c}</span></button>`
+            )
             .join("")}
         </div>`;
     }
@@ -400,8 +484,9 @@
     root.innerHTML = `
       <header class="topbar">
         <button class="btn ghost" data-nav="home">← 종료</button>
-        <span class="progress">${progress}</span>
+        <span class="progress">${session.subject} · ${progress}</span>
       </header>
+      <div class="progress-track"><div class="progress-fill" style="width:${progressPct}%"></div></div>
       <main class="quiz">
         <p class="prompt">${q.prompt.replace(/\n/g, "<br>")}</p>
         <div id="qbody">${bodyHtml}</div>
@@ -409,6 +494,7 @@
       </main>`;
 
     root.querySelector("[data-nav='home']").addEventListener("click", () => {
+      document.onkeydown = null;
       session = null;
       renderHome();
     });
@@ -416,6 +502,24 @@
     root.querySelectorAll("[data-answer]").forEach((btn) => {
       btn.addEventListener("click", () => onAnswer(decodeURIComponent(btn.dataset.answer)));
     });
+
+    // 데스크톱용 단축키: 정답 전 O/X·1~4로 선택, 정답 후 1~4로 난이도 평가
+    document.onkeydown = (e) => {
+      if (!session || !session.current) return;
+      const k = e.key.toLowerCase();
+      if (!session.current.answered) {
+        if (q.type === "ox") {
+          if (k === "o") onAnswer("O");
+          if (k === "x") onAnswer("X");
+        } else if (["1", "2", "3", "4"].includes(k)) {
+          const choice = q.choices[Number(k) - 1];
+          if (choice !== undefined) onAnswer(choice);
+        }
+      } else {
+        const grades = { 1: "again", 2: "hard", 3: "good", 4: "easy" };
+        if (grades[k]) onRate(grades[k]);
+      }
+    };
   }
 
   function onAnswer(picked) {
@@ -425,19 +529,43 @@
     const isCorrect = picked === q.answer;
     session.current.isCorrect = isCorrect;
     if (isCorrect) session.correct += 1;
+    if (!isCorrect) {
+      session.wrongIds = session.wrongIds || [];
+      session.wrongIds.push(card.id);
+    }
 
-    document.querySelectorAll("[data-answer]").forEach((b) => (b.disabled = true));
+    // 선택지에 정답(초록)·내가 고른 오답(빨강)을 표시해 무엇이 왜 틀렸는지 바로 보이게 함
+    document.querySelectorAll("[data-answer]").forEach((b) => {
+      b.disabled = true;
+      const val = decodeURIComponent(b.dataset.answer);
+      if (val === q.answer) b.classList.add(q.type === "notcase" ? "trap-answer" : "correct-choice");
+      if (!isCorrect && val === picked) b.classList.add("picked-wrong");
+    });
+
+    const contrasts = cardContrasts(card);
+    const trapHtml =
+      contrasts.length && q.type !== "notcase"
+        ? `<div class="trap-box"><strong>⚠️ 함정 주의 — 아래는 헷갈리기 쉬운 '틀린' 서술입니다</strong><ul>${contrasts
+            .map((t) => `<li>${t}</li>`)
+            .join("")}</ul></div>`
+        : "";
+
+    const articlesHtml = (card.articles || []).map((a) => `<span class="chip">${a}</span>`).join("");
+    const metaHtml = `<div class="meta-chips"><span class="chip">${card.subject} · ${card.topic}</span>${articlesHtml}</div>`;
 
     const flagged = STORE.isFlagged(state, card.id);
     const feedback = document.getElementById("feedback");
     feedback.innerHTML = `
       <div class="feedback ${isCorrect ? "correct" : "wrong"}">
         <p>${isCorrect ? "정답입니다." : "오답입니다."}</p>
-        <p class="reveal"><strong>${card.caseNumber}</strong><br>${q.reveal}</p>
+        <p class="reveal"><strong>${card.caseNumber}</strong><br>${q.reveal.replace(/\n/g, "<br>")}</p>
+        ${metaHtml}
       </div>
+      ${trapHtml}
       <button class="btn flag ${flagged ? "flagged" : ""}" data-flag="${card.id}">
         ${flagged ? "🚩 신고됨 (취소하기)" : "🚩 이 카드 내용 오류 신고"}
       </button>
+      <p class="rating-hint">다음 복습 간격을 정합니다 — 틀렸다면 "다시"를 선택하세요</p>
       <div class="rating-row">
         <button class="btn rate" data-grade="again">다시</button>
         <button class="btn rate" data-grade="hard">어려움</button>
@@ -445,12 +573,14 @@
         <button class="btn rate" data-grade="easy">쉬움</button>
       </div>`;
 
+    feedback.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
     feedback.querySelectorAll("[data-grade]").forEach((btn) => {
       btn.addEventListener("click", () => onRate(btn.dataset.grade));
     });
 
     feedback.querySelector("[data-flag]").addEventListener("click", (e) => {
-      STORE.toggleFlag(state, card.id);
+      toggleFlagAndReport(card.id);
       const nowFlagged = STORE.isFlagged(state, card.id);
       const btn = e.currentTarget;
       btn.textContent = nowFlagged ? "🚩 신고됨 (취소하기)" : "🚩 이 카드 내용 오류 신고";
@@ -474,19 +604,50 @@
   }
 
   function renderSessionEnd() {
+    document.onkeydown = null;
+    const total = session.queue.length;
+    const pct = Math.round((session.correct / total) * 100);
+    const wrongIds = [...new Set(session.wrongIds || [])];
+
+    const recapRows = wrongIds
+      .map((id) => {
+        const c = cardById(id);
+        if (!c) return "";
+        return `
+          <div class="flag-row">
+            <div class="flag-info"><strong>[${c.subject}] ${c.caseNumber}</strong><br>${c.holding}</div>
+          </div>`;
+      })
+      .join("");
+
+    const recapHtml = wrongIds.length
+      ? `<h2>이번에 틀린 문제 (${wrongIds.length})</h2>
+         <div class="flag-list">${recapRows}</div>
+         <button class="btn primary big" data-nav="retry">틀린 문제 바로 다시 풀기 (${wrongIds.length})</button>`
+      : `<p class="empty-notice">전부 맞혔습니다! 🎉</p>`;
+
     root.innerHTML = `
       <header class="topbar"><h1>학습 완료</h1></header>
-      <main class="home">
+      <main class="stats">
         <div class="hero">
-          <div class="hero-count">${session.correct}/${session.queue.length}</div>
-          <div class="hero-label">정답 수</div>
-          <button class="btn primary big" data-nav="home">홈으로</button>
+          <div class="hero-count">${session.correct}/${total}</div>
+          <div class="hero-label">정답률 ${pct}%</div>
         </div>
+        ${recapHtml}
+        <button class="btn big" data-nav="home">홈으로</button>
       </main>`;
+
     root.querySelector("[data-nav='home']").addEventListener("click", () => {
       session = null;
       renderHome();
     });
+    const retryBtn = root.querySelector("[data-nav='retry']");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", () => {
+        session = { queue: shuffle(wrongIds), index: 0, subject: "오답 바로 복습", correct: 0 };
+        renderQuestion();
+      });
+    }
   }
 
   // ---------- 통계 ----------
@@ -516,7 +677,7 @@
       .join("");
 
     const { topics, qtypes } = reviewStats();
-    const typeLabel = { ox: "OX", blank: "빈칸", case: "사례형" };
+    const typeLabel = { ox: "OX", blank: "빈칸", case: "사례형", notcase: "틀린것찾기" };
 
     const weakRow = (label, v) => {
       const pct = Math.round(v.accuracy * 100);
@@ -552,6 +713,14 @@
           .join("")
       : `<p class="empty-notice">신고한 카드가 없습니다.</p>`;
 
+    let reportNote = "";
+    if (typeof REPORT !== "undefined" && REPORT.enabled()) {
+      const pending = REPORT.pendingCount();
+      reportNote = pending
+        ? `<p class="prompt">신고 내용은 개발자에게 자동 전송됩니다. 전송 대기 ${pending}건 — 인터넷에 연결되면 자동으로 보내집니다.</p>`
+        : `<p class="prompt">신고 내용은 개발자에게 자동 전송됩니다.</p>`;
+    }
+
     const trendRows = Object.entries(EXAM_TRENDS)
       .map(([subj, note]) => `<div class="flag-row"><div class="flag-info"><strong>${subj}</strong><br>${note}</div></div>`)
       .join("");
@@ -578,6 +747,7 @@
         <div class="weak-list">${typeRows}</div>
         <button class="btn primary big" data-nav="weak" ${canFocus ? "" : "disabled"}>약점 집중 학습 시작</button>
         <h2>신고한 카드 (${state.flags.length})</h2>
+        ${reportNote}
         <div class="flag-list">${flagRows}</div>
         ${state.flags.length ? `<button class="btn ghost small" data-copy-flags>신고 목록 복사하기</button>` : ""}
       </main>`;
@@ -586,7 +756,7 @@
     root.querySelector("[data-nav='weak']").addEventListener("click", startWeakSession);
     root.querySelectorAll("[data-unflag]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        STORE.toggleFlag(state, btn.dataset.unflag);
+        toggleFlagAndReport(btn.dataset.unflag);
         renderStats();
       });
     });

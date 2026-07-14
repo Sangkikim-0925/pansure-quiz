@@ -407,3 +407,147 @@ main {
   font-size: 12px;
   text-decoration: none;
 }
+
+/* ---------- 퀴즈 진행바 ---------- */
+.progress-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 0 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.home-progress {
+  margin: 10px 24px 0;
+}
+
+.hero-sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* ---------- 선택지 번호·정답/오답 표시 ---------- */
+.choice.wide {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.choice-num {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.choice-text {
+  flex: 1;
+}
+
+.choice.correct-choice,
+.choice.correct-choice:disabled {
+  opacity: 1;
+  border-color: var(--correct);
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.choice.correct-choice .choice-num {
+  background: var(--correct);
+  border-color: var(--correct);
+  color: white;
+}
+
+/* "틀린 것 고르기"에서의 정답(=틀린 서술) 표시: 초록이면 참인 문장으로 오해할 수 있어 주황 계열 사용 */
+.choice.trap-answer,
+.choice.trap-answer:disabled {
+  opacity: 1;
+  border-color: #D97706;
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.choice.trap-answer .choice-num {
+  background: #D97706;
+  border-color: #D97706;
+  color: white;
+}
+
+.choice.picked-wrong,
+.choice.picked-wrong:disabled {
+  opacity: 1;
+  border-color: var(--wrong);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.choice.picked-wrong .choice-num {
+  background: var(--wrong);
+  border-color: var(--wrong);
+  color: white;
+}
+
+/* ---------- 해설 메타 정보 · 함정 박스 ---------- */
+.meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.trap-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.trap-box strong {
+  color: #B45309;
+  font-size: 12px;
+}
+
+.trap-box ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.trap-box li {
+  margin-bottom: 4px;
+}
+
+.rating-hint {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  margin: 12px 0 0;
+}
+
+.rating-row {
+  margin-top: 8px;
+}

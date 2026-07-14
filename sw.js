@@ -1,4 +1,4 @@
-const CACHE_NAME = "pansure-quiz-v2";
+const CACHE_NAME = "pansure-quiz-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const ASSETS = [
   "./js/data.js",
   "./js/srs.js",
   "./js/storage.js",
+  "./js/report.js",
   "./js/app.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
